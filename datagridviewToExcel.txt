@@ -1,0 +1,52 @@
+SaveFileDialog save = new SaveFileDialog();
+save.Filter = "excel2003|*.xls";
+if (save.ShowDialog() == DialogResult.OK)
+{
+    string queryInsertHeader = string.Empty;
+    string querySelectHeader = string.Empty;
+    for (int i = 0; i < dataGridView1.ColumnCount; i++)
+    {
+        queryInsertHeader += dataGridView1.Columns[i].Name + " Text,";
+        querySelectHeader += dataGridView1.Columns[i].Name + ",";
+    }
+    queryInsertHeader = queryInsertHeader.Substring(0, queryInsertHeader.Length - 1);
+    querySelectHeader = querySelectHeader.Substring(0, querySelectHeader.Length - 1);
+    string strConn = string.Format("Provider=Microsoft.Jet.OLEDB.4.0;Data Source={0};Extended Properties=\"Excel 8.0;HDR=Yes;\";", save.FileName);
+    using (OleDbConnection con = new OleDbConnection(strConn))
+    {
+        con.Open();
+        using (OleDbCommand cmd = new OleDbCommand())
+        {
+            try
+            {
+                cmd.Connection = con;
+                cmd.CommandText = string.Format("create table demo ({0})", queryInsertHeader);
+                cmd.ExecuteNonQuery();
+            }
+            catch
+            {
+            }
+        }
+        using (OleDbDataAdapter Bada = new OleDbDataAdapter(string.Format("select {0} from demo where 1=2", querySelectHeader), con))
+        {
+            try
+            {
+                OleDbCommandBuilder cb = new OleDbCommandBuilder(Bada);
+                cb.QuotePrefix = "[";
+                cb.QuoteSuffix = "]";
+                DataSet temp = new DataSet();
+                Bada.Fill(temp, "demo");
+                foreach (DataRow tempRow in ds.Tables["cs"].Rows)
+                {
+                    DataRow dr = temp.Tables["demo"].NewRow();
+                    dr.ItemArray = tempRow.ItemArray;
+                    temp.Tables["demo"].Rows.Add(dr);
+                }
+                Bada.Update(temp, "demo");
+            }
+            catch (Exception)
+            {
+            }
+        }
+    }
+}
