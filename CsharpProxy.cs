@@ -3,13 +3,55 @@ using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Threading;
+using System.Messaging;
+
 namespace ProxyTest
 {
     class Program
     {
         static void Main(string[] args)
         {
-            string content = GetContent("https://www.douban.com/group/explore/culture");
+            MessageQueue mq = null;
+            if (MessageQueue.Exists(@".\Private$\MyQueue"))
+                mq = new System.Messaging.MessageQueue(@".\Private$\MyQueue");
+            else
+                mq = MessageQueue.Create(@".\Private$\MyQueue");
+            Message mm = new Message();
+            //DirectoryInfo dir = new DirectoryInfo("group");
+            //foreach (FileInfo item in dir.GetFiles())
+            //{
+            //    mm.Body = item.Name;
+            //    mm.Label = item.Name;
+            //    mq.Send(mm);
+            //}
+            mm = mq.Receive();
+            mm.Formatter = new XmlMessageFormatter(new String[] { "System.String,mscorlib" });
+            Console.WriteLine(mm.Body);
+            Console.WriteLine("done");
+            Console.ReadKey();
+        }
+
+        private void GetGroup()
+        {
+            Thread t1 = new Thread(Craw);
+            Thread t2 = new Thread(Craw);
+            Thread t3 = new Thread(Craw);
+            Thread t4 = new Thread(Craw);
+            Thread t5 = new Thread(Craw);
+            Thread t6 = new Thread(Craw);
+            t1.Start("culture");
+            t2.Start("travel");
+            t3.Start("ent");
+            t4.Start("fashion");
+            t5.Start("life");
+            t6.Start("tech");
+        }
+
+        static void Craw(object category)
+        {
+            string groupUrl = string.Format("https://www.douban.com/group/explore/{0}", category);
+            string content = GetContent(groupUrl);
             Regex re = null;
             string strTotalPage = "data-total-page=\"(\\d+)\"";
             int intTotalPate = 0;
@@ -20,7 +62,7 @@ namespace ProxyTest
             }
             for (int i = 0; i < intTotalPate; i++)
             {
-                string url = string.Format("https://www.douban.com/group/explore/culture?start={0}", i * 30);
+                string url = string.Format("{0}?start={1}", groupUrl, i * 30);
                 re = new Regex("<span class=\"from\">.+(https://www.douban.com/group/.+/\").+</span>");
                 content = GetContent(url);
                 if (re.IsMatch(content))
@@ -38,7 +80,7 @@ namespace ProxyTest
                 }
                 Console.WriteLine(url);
             }
-            Console.ReadKey();
+            Console.WriteLine("done");
         }
 
         static string GetContent(string url)
@@ -63,7 +105,7 @@ namespace ProxyTest
                 "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)"
             };
             string proxyUri = string.Format("{0}:{1}", "http://0.0.0.0", "0000");
-            NetworkCredential proxyCreds = new NetworkCredential("0000", "00000");
+            NetworkCredential proxyCreds = new NetworkCredential("00000000", "00000000");
             WebProxy proxy = new WebProxy(proxyUri, false)
             {
                 UseDefaultCredentials = false,
@@ -83,7 +125,7 @@ namespace ProxyTest
             int index = r.Next(0, agent.Length - 1);
             HttpClient client = new HttpClient(httpClientHandler);
             client.DefaultRequestHeaders.Add("User-Agent", agent[index]);
-            System.Threading.Thread.Sleep(1000*5);
+            System.Threading.Thread.Sleep(1000 * 5);
             HttpResponseMessage message = client.GetAsync(url).Result;
             if (!message.IsSuccessStatusCode)
             {
