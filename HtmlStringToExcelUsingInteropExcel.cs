@@ -1,3 +1,6 @@
+# 
+# 有关调用Excel权限问题，Windows Server 2012 R2 中注意 IIS 8.5 线程池中有一项设置 Load User Profile 要设置为 True
+
 using System;
 using System.Collections.Generic;
 using System.Text;
